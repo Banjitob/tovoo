@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Reading | SpiritPath</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body>
+
+    <div id="siteNotif"></div>
+
+<header class="site-header">
+    <div class="container">
+        <div class="logo"><img src="/images/logo.jpg" alt="SpiritPath"></div>
+        <nav>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="booking.html" class="active">Book a Reading</a></li>
+                <li><a href="shop.html">Shop</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="testimonials.html">Testimonials</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="dashboard.html" id="dashboardNavLink" style="display:none">Dashboard</a></li>
+                <li><a href="login.html" id="loginNavLink">Login / Sign Up</a></li>
+                <li id="userMenu" style="display:none; position:relative;">
+                    <div class="user-menu-trigger" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <img id="userAvatar" src="" alt="Avatar" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
+                        <span id="userNameDisplay" style="font-size:0.9rem;"></span>
+                        <i class="fas fa-chevron-down" style="font-size:0.8rem;"></i>
+                    </div>
+                    <div class="user-dropdown" style="display:none; position:absolute; top:100%; right:0; background:var(--bg-card); border:1px solid var(--border-light); border-radius:12px; padding:0.5rem 0; min-width:180px; z-index:1000; margin-top:0.5rem;">
+                        <a href="dashboard.html" style="display:block; padding:0.5rem 1rem; color:var(--text-primary); text-decoration:none;"><i class="fas fa-user"></i> My Dashboard</a>
+                        <a href="booking.html" style="display:block; padding:0.5rem 1rem; color:var(--text-primary); text-decoration:none;"><i class="fas fa-calendar"></i> Book Reading</a>
+                        <a href="shop.html" style="display:block; padding:0.5rem 1rem; color:var(--text-primary); text-decoration:none;"><i class="fas fa-shopping-bag"></i> Shop</a>
+                        <hr style="margin:0.5rem 0; border-color:var(--border-light);">
+                        <a href="#" id="logoutNavBtn" style="display:block; padding:0.5rem 1rem; color:var(--error); text-decoration:none;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </li>
+            </ul>
+            <button class="mobile-menu-toggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+        </nav>
+    </div>
+</header>
+
+    <main class="booking-main">
+        <div class="container">
+            <div class="page-header" style="text-align:center;padding:2rem 0 1rem;">
+                <h1>Book Your Reading</h1>
+                <p style="color:var(--text-secondary)">Select the guidance that calls to you, choose a time, and complete your booking.</p>
+            </div>
+
+            <div class="booking-stepper" id="bookingStepper">
+                <div class="step active" data-step="1">
+                    <div class="step-icon"><i class="fas fa-magic"></i></div>
+                    <span>Service</span>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-icon"><i class="fas fa-clock"></i></div>
+                    <span>Duration</span>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <span>Date & Time</span>
+                </div>
+                <div class="step" data-step="4">
+                    <div class="step-icon"><i class="fas fa-user"></i></div>
+                    <span>Your Info</span>
+                </div>
+                <div class="step" data-step="5">
+                    <div class="step-icon"><i class="fas fa-credit-card"></i></div>
+                    <span>Payment</span>
+                </div>
+            </div>
+
+            <div id="bookingContent" class="booking-content"></div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>© 2025 SpiritPath — Sacred Guidance</p>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-telegram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="module" src="js/firebase.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/booking.js"></script>
+    <script>
+        // User menu dropdown toggle
+const userMenuTrigger = document.querySelector('.user-menu-trigger');
+const userDropdown = document.querySelector('.user-dropdown');
+
+if (userMenuTrigger && userDropdown) {
+    userMenuTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = userDropdown.style.display === 'block';
+        userDropdown.style.display = isVisible ? 'none' : 'block';
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (userMenuTrigger && userDropdown && !userMenuTrigger.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.style.display = 'none';
+        }
+    });
+}
+
+// Handle logout from dropdown
+const logoutNavBtn = document.getElementById('logoutNavBtn');
+if (logoutNavBtn) {
+    logoutNavBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        import('./js/auth.js').then(module => {
+            module.handleLogout();
+        });
+    });
+}
+    </script>
+</body>
+</html>
