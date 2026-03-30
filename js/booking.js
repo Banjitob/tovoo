@@ -205,12 +205,31 @@ function renderStep5() {
     return `
     <div class="booking-step">
         <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Confirm & Send</h2>
-        ${summaryBar()}
-        <div class="booking-summary" style="margin-top:1rem;">
-            <p><span>Name</span><strong>${escapeHtml(bookingData.userInfo?.name || '')}</strong></p>
-            <p><span>Email</span><strong>${escapeHtml(bookingData.userInfo?.email || '')}</strong></p>
-        </div>
-        ${navButtons('Back', 'sendBtn', 'Send')}
+        <form id="bookingForm" action="https://formspree.io/f/mzdkrgao" method="POST">
+            ${summaryBar()}
+            <div class="booking-summary" style="margin-top:1rem;">
+                <p><span>Name</span><strong>${escapeHtml(bookingData.userInfo?.name || '')}</strong></p>
+                <p><span>Email</span><strong>${escapeHtml(bookingData.userInfo?.email || '')}</strong></p>
+                <p><span>Service</span><strong>${escapeHtml(bookingData.service?.name || '')}</strong></p>
+                <p><span>Duration</span><strong>${escapeHtml(bookingData.duration?.label || '')}</strong></p>
+                <p><span>Date & Time</span><strong>${bookingData.dateTime ? escapeHtml(formatDT(bookingData.dateTime)) : 'Not selected'}</strong></p>
+                <p><span>Notes</span><strong>${escapeHtml(bookingData.userInfo?.note || 'None')}</strong></p>
+                <p class="booking-total"><span>Total</span><strong>$${total}</strong></p>
+            </div>
+            <input type="hidden" name="name" value="${escapeHtml(bookingData.userInfo?.name || '')}">
+            <input type="hidden" name="email" value="${escapeHtml(bookingData.userInfo?.email || '')}">
+            <input type="hidden" name="phone" value="${escapeHtml(bookingData.userInfo?.phone || '')}">
+            <input type="hidden" name="service" value="${escapeHtml(bookingData.service?.name || '')}">
+            <input type="hidden" name="duration" value="${escapeHtml(bookingData.duration?.label || '')}">
+            <input type="hidden" name="dateTime" value="${escapeHtml(bookingData.dateTime ? formatDT(bookingData.dateTime) : '')}">
+            <input type="hidden" name="notes" value="${escapeHtml(bookingData.userInfo?.note || '')}">
+            <input type="hidden" name="total" value="$${total}">
+            <input type="hidden" name="message" value="Booking request for ${escapeHtml(bookingData.service?.name || 'a service')} on ${escapeHtml(bookingData.dateTime ? formatDT(bookingData.dateTime) : 'an unscheduled time')}.">
+            <div class="step-buttons">
+                <button class="btn btn-outline" type="button" id="prevBtn"><i class="fas fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary" type="submit" id="sendBtn">Send</button>
+            </div>
+        </form>
     </div>`;
 }
 
@@ -316,52 +335,10 @@ function attachEvents() {
         validate();
     }
 
-    document.getElementById('sendBtn')?.addEventListener('click', handleSend);
     document.getElementById('nextBtn')?.addEventListener('click', () => goTo(currentStep + 1));
 }
 
-// ── Booking submission ─────────────────────────────────
-async function handleSend() {
-    const sendBtn = document.getElementById('sendBtn');
-    setLoading(sendBtn, true);
-
-    const payload = {
-        name: bookingData.userInfo?.name || '',
-        email: bookingData.userInfo?.email || '',
-        phone: bookingData.userInfo?.phone || '',
-        service: bookingData.service?.name || '',
-        duration: bookingData.duration?.label || '',
-        dateTime: bookingData.dateTime ? formatDT(bookingData.dateTime) : '',
-        notes: bookingData.userInfo?.note || '',
-        total: (bookingData.service?.price || 0) + (bookingData.duration?.price || 0),
-        message: `Booking request for ${bookingData.service?.name || 'a service'} on ${bookingData.dateTime ? formatDT(bookingData.dateTime) : 'an unscheduled time'}.`,
-    };
-
-    try {
-        const response = await fetch('https://formspree.io/f/mzdkrgao', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            const message = errorData?.error || errorData?.message || response.statusText || 'Unable to send booking request.';
-            throw new Error(message);
-        }
-
-        await saveBooking('formspree', 'sent');
-    } catch (err) {
-        showToast('Error sending booking: ' + err.message, 'error');
-        setLoading(sendBtn, false);
-    }
-}
-
 async function saveBooking(txRef, paymentStatus) {
-    const sendBtn = document.getElementById('sendBtn');
     try {
         await addDoc(collection(db, 'bookings'), {
             userId: currentUser?.uid || null,
@@ -382,6 +359,7 @@ async function saveBooking(txRef, paymentStatus) {
         setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
     } catch (err) {
         showToast('Error saving booking: ' + err.message, 'error');
+        const sendBtn = document.getElementById('sendBtn');
         setLoading(sendBtn, false);
     }
 }
