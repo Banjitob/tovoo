@@ -50,8 +50,8 @@ const durations = [
     { id: '2card', label: '2-card pull', price: 7,  desc: 'Focused insight with two cards' },
     { id: '3card', label: '3-card pull', price: 10, desc: 'Expanded guidance with three cards' },
     { id: '5card', label: '5-card pull', price: 15, desc: 'Deeper exploration with five cards' },
-    { id: 'mini', label: 'Mini read', price: 50, desc: 'Short intuitive reading for quick clarity' },
-    { id: 'standard', label: 'Standard read', price: 80, desc: 'Full standard session for balanced guidance' },
+    { id: 'mini', label: 'Mini read', price: 75, desc: 'Short intuitive reading for quick clarity' },
+    { id: 'standard', label: 'Standard read', price: 100, desc: 'Full standard session for balanced guidance' },
 ];
 
 // ── Auth state ─────────────────────────────────────────
@@ -204,17 +204,13 @@ function renderStep5() {
     const total = (bookingData.service?.price || 0) + (bookingData.duration?.price || 0);
     return `
     <div class="booking-step">
-        <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Confirm & Pay</h2>
+        <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Confirm & Send</h2>
         ${summaryBar()}
         <div class="booking-summary" style="margin-top:1rem;">
             <p><span>Name</span><strong>${escapeHtml(bookingData.userInfo?.name || '')}</strong></p>
             <p><span>Email</span><strong>${escapeHtml(bookingData.userInfo?.email || '')}</strong></p>
         </div>
-        <p style="color:var(--text-secondary);font-size:0.9rem;margin:1rem 0;">
-            <i class="fas fa-lock" style="color:var(--accent);margin-right:0.5rem;"></i>
-            Payment is processed securely via Flutterwave.
-        </p>
-        ${navButtons('Back', 'payBtn', `Pay $${total}`)}
+        ${navButtons('Back', 'sendBtn', 'Send')}
     </div>`;
 }
 
@@ -320,66 +316,56 @@ function attachEvents() {
         validate();
     }
 
-    document.getElementById('payBtn')?.addEventListener('click', handlePayment);
+    document.getElementById('sendBtn')?.addEventListener('click', handleSend);
     document.getElementById('nextBtn')?.addEventListener('click', () => goTo(currentStep + 1));
 }
 
-// ── Payment ────────────────────────────────────────────
-async function handlePayment() {
-    if (!currentUser) {
-        showToast('Please sign in to complete your booking.', 'error');
-        signInWithPopup(auth, provider).then(() => {
-            showToast('Signed in! Please click Pay again.', 'success');
+// ── Booking submission ─────────────────────────────────
+async function handleSend() {
+    const sendBtn = document.getElementById('sendBtn');
+    setLoading(sendBtn, true);
+
+    const payload = {
+        name: bookingData.userInfo?.name || '',
+        email: bookingData.userInfo?.email || '',
+        phone: bookingData.userInfo?.phone || '',
+        service: bookingData.service?.name || '',
+        duration: bookingData.duration?.label || '',
+        dateTime: bookingData.dateTime ? formatDT(bookingData.dateTime) : '',
+        notes: bookingData.userInfo?.note || '',
+        total: (bookingData.service?.price || 0) + (bookingData.duration?.price || 0),
+        message: `Booking request for ${bookingData.service?.name || 'a service'} on ${bookingData.dateTime ? formatDT(bookingData.dateTime) : 'an unscheduled time'}.`,
+    };
+
+    try {
+        const response = await fetch('https://formspree.io/f/mzdkrgao', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(payload),
         });
-        return;
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            const message = errorData?.error || errorData?.message || response.statusText || 'Unable to send booking request.';
+            throw new Error(message);
+        }
+
+        await saveBooking('formspree', 'sent');
+    } catch (err) {
+        showToast('Error sending booking: ' + err.message, 'error');
+        setLoading(sendBtn, false);
     }
-
-    const total = (bookingData.service?.price || 0) + (bookingData.duration?.price || 0);
-    const payBtn = document.getElementById('payBtn');
-    setLoading(payBtn, true);
-
-    // ⚠️ IMPORTANT: Replace with your actual Flutterwave public key
-    const FLUTTERWAVE_PUBLIC_KEY = 'FLWPUBK-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-x';
-    
-    if (!window.FlutterwaveCheckout) {
-        showToast('Payment system not loaded. Please refresh the page.', 'error');
-        setLoading(payBtn, false);
-        return;
-    }
-
-    window.FlutterwaveCheckout({
-        public_key: FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref: 'SP_' + Date.now(),
-        amount: total,
-        currency: 'USD',
-        payment_options: 'card, mobilemoneyghana, ussd',
-        customer: {
-            email: bookingData.userInfo.email,
-            name: bookingData.userInfo.name,
-        },
-        customizations: {
-            title: 'Alexisunplugged Booking',
-            description: `${bookingData.service.name} – ${bookingData.duration.label}`,
-            logo: window.location.origin + '/images/logo.jpg',
-        },
-        callback: async (response) => {
-            if (response.status === 'successful') {
-                await saveBooking(response.transaction_id, response.status);
-            } else {
-                showToast('Payment was not completed. Please try again.', 'error');
-                setLoading(payBtn, false);
-            }
-        },
-        onclose: () => setLoading(payBtn, false),
-    });
 }
 
 async function saveBooking(txRef, paymentStatus) {
-    const payBtn = document.getElementById('payBtn');
+    const sendBtn = document.getElementById('sendBtn');
     try {
         await addDoc(collection(db, 'bookings'), {
-            userId: currentUser.uid,
-            userEmail: currentUser.email,
+            userId: currentUser?.uid || null,
+            userEmail: bookingData.userInfo?.email || currentUser?.email || '',
             service: bookingData.service,
             duration: bookingData.duration,
             dateTime: bookingData.dateTime,
@@ -396,7 +382,7 @@ async function saveBooking(txRef, paymentStatus) {
         setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
     } catch (err) {
         showToast('Error saving booking: ' + err.message, 'error');
-        setLoading(payBtn, false);
+        setLoading(sendBtn, false);
     }
 }
 
