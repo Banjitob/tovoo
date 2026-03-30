@@ -10,11 +10,11 @@ let cart = [];
 
 // ── Cart Persistence ────────────────────────────────────
 function saveCartToLocalStorage() {
-    localStorage.setItem('spiritpath_cart', JSON.stringify(cart));
+    localStorage.setItem('Alexisunplugged_cart', JSON.stringify(cart));
 }
 
 function loadCartFromLocalStorage() {
-    const saved = localStorage.getItem('spiritpath_cart');
+    const saved = localStorage.getItem('Alexisunplugged_cart');
     if (saved) {
         try {
             cart = JSON.parse(saved);
@@ -235,7 +235,7 @@ document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
             name: currentUser.displayName || 'Customer',
         },
         customizations: {
-            title: 'SpiritPath Shop',
+            title: 'Alexisunplugged Shop',
             description: cart.map(i => i.name).join(', ').substring(0, 100),
             logo: window.location.origin + '/images/logo.jpg',
         },

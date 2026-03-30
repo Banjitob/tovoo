@@ -132,7 +132,7 @@ async function loadPost(id) {
         // Render content – supports plain text or simple HTML
         document.getElementById('postContent').innerHTML = post.contentHtml || `<p>${(post.content || '').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
 
-        document.title = post.title + ' | SpiritPath Blog';
+        document.title = post.title + ' | Alexisunplugged Blog';
     } catch (e) {
         document.getElementById('postHeader').innerHTML = '<p style="color:var(--error)">Post not found.</p>';
     }
@@ -141,7 +141,7 @@ async function loadPost(id) {
 document.getElementById('backToList')?.addEventListener('click', () => {
     document.getElementById('postView').style.display = 'none';
     document.getElementById('listView').style.display = 'block';
-    document.title = 'Blog | SpiritPath';
+    document.title = 'Blog | Alexisunplugged';
 });
 
 document.getElementById('loadMoreBtn')?.addEventListener('click', () => loadPosts(false));

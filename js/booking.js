@@ -13,7 +13,7 @@ let bookingData = { service: null, duration: null, dateTime: null, userInfo: nul
 
 // Load saved booking data from localStorage
 function loadSavedBookingData() {
-    const saved = localStorage.getItem('spiritpath_booking');
+    const saved = localStorage.getItem('Alexisunplugged_booking');
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
@@ -28,12 +28,12 @@ function loadSavedBookingData() {
 
 // Save booking data to localStorage
 function saveBookingData() {
-    localStorage.setItem('spiritpath_booking', JSON.stringify(bookingData));
+    localStorage.setItem('Alexisunplugged_booking', JSON.stringify(bookingData));
 }
 
 // Clear saved booking data
 function clearSavedBookingData() {
-    localStorage.removeItem('spiritpath_booking');
+    localStorage.removeItem('Alexisunplugged_booking');
 }
 
 // ── Data ───────────────────────────────────────────────
@@ -47,9 +47,11 @@ const services = [
 ];
 
 const durations = [
-    { id: '15min', label: '15 minutes', price: 0,  desc: 'Quick focused guidance' },
-    { id: '30min', label: '30 minutes', price: 30, desc: 'Deeper exploration' },
-    { id: '60min', label: '60 minutes', price: 75, desc: 'Full immersive session' },
+    { id: '2card', label: '2-card pull', price: 7,  desc: 'Focused insight with two cards' },
+    { id: '3card', label: '3-card pull', price: 10, desc: 'Expanded guidance with three cards' },
+    { id: '5card', label: '5-card pull', price: 15, desc: 'Deeper exploration with five cards' },
+    { id: 'mini', label: 'Mini read', price: 50, desc: 'Short intuitive reading for quick clarity' },
+    { id: 'standard', label: 'Standard read', price: 80, desc: 'Full standard session for balanced guidance' },
 ];
 
 // ── Auth state ─────────────────────────────────────────
@@ -356,7 +358,7 @@ async function handlePayment() {
             name: bookingData.userInfo.name,
         },
         customizations: {
-            title: 'SpiritPath Booking',
+            title: 'Alexisunplugged Booking',
             description: `${bookingData.service.name} – ${bookingData.duration.label}`,
             logo: window.location.origin + '/images/logo.jpg',
         },
