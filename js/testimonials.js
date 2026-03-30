@@ -5,7 +5,14 @@ import { showToast, setLoading } from './utils.js';
 const db = getFirestore();
 const auth = getAuth();
 
-// Load testimonials
+// Helper: safe rating display (0-5)
+function renderStars(rating) {
+    let num = Number(rating);
+    if (isNaN(num)) num = 0;
+    num = Math.min(5, Math.max(0, Math.floor(num))); // clamp 0-5
+    return '★'.repeat(num) + '☆'.repeat(5 - num);
+}
+
 async function loadTestimonials() {
     const grid = document.getElementById('testimonialsGrid');
     const loader = document.getElementById('testimonialsLoader');
@@ -20,14 +27,18 @@ async function loadTestimonials() {
         if (snapshot.empty) {
             grid.innerHTML = '<p>No testimonials yet. Be the first to share your experience!</p>';
         } else {
-            grid.innerHTML = snapshot.docs.map(doc => `
-                <div class="testimonial-card">
-                    <div class="stars">${'★'.repeat(doc.data().rating)}${'☆'.repeat(5-doc.data().rating)}</div>
-                    <p>"${doc.data().message}"</p>
-                    <span>— ${doc.data().name}</span>
-                    <small>${new Date(doc.data().createdAt?.toDate()).toLocaleDateString()}</small>
-                </div>
-            `).join('');
+            grid.innerHTML = snapshot.docs.map(doc => {
+                const data = doc.data();
+                const rating = data.rating;
+                return `
+                    <div class="testimonial-card">
+                        <div class="stars">${renderStars(rating)}</div>
+                        <p>"${escapeHtml(data.message || '')}"</p>
+                        <span>— ${escapeHtml(data.name || 'Anonymous')}</span>
+                        <small>${data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : ''}</small>
+                    </div>
+                `;
+            }).join('');
         }
     } catch (error) {
         console.error(error);
@@ -37,7 +48,6 @@ async function loadTestimonials() {
     }
 }
 
-// Star rating UI
 function initStarRating() {
     const stars = document.querySelectorAll('#starRating i');
     const ratingInput = document.getElementById('testimonialRating');
@@ -60,7 +70,6 @@ function initStarRating() {
     });
 }
 
-// Submit testimonial
 const testimonialForm = document.getElementById('testimonialForm');
 if (testimonialForm) {
     testimonialForm.addEventListener('submit', async (e) => {
@@ -72,7 +81,9 @@ if (testimonialForm) {
         }
 
         const name = document.getElementById('testimonialName').value.trim();
-        const rating = parseInt(document.getElementById('testimonialRating').value);
+        let rating = parseInt(document.getElementById('testimonialRating').value);
+        if (isNaN(rating)) rating = 5;
+        rating = Math.min(5, Math.max(1, rating)); // clamp 1-5
         const message = document.getElementById('testimonialMessage').value.trim();
 
         if (!name || !message) {
@@ -93,14 +104,12 @@ if (testimonialForm) {
             });
             showToast('Thank you for your testimonial!', 'success');
             testimonialForm.reset();
-            // Reset star rating to 5
             document.getElementById('testimonialRating').value = 5;
             const stars = document.querySelectorAll('#starRating i');
             stars.forEach((s, idx) => {
                 if (idx < 5) s.classList.add('fas');
                 else s.classList.add('far');
             });
-            // Reload testimonials
             loadTestimonials();
         } catch (error) {
             showToast('Error submitting testimonial: ' + error.message, 'error');
@@ -110,7 +119,16 @@ if (testimonialForm) {
     });
 }
 
-// Initialize page
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadTestimonials();
     initStarRating();
