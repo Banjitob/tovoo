@@ -38,12 +38,12 @@ function clearSavedBookingData() {
 
 // ── Data ───────────────────────────────────────────────
 const services = [
-    { id: 'love',     name: 'Love Reading',      desc: 'Clarity on relationships, soulmates & emotional blocks.', icon: 'heart',    price: 45 },
-    { id: 'career',   name: 'Career Reading',     desc: 'Discover your professional purpose and next steps.',      icon: 'briefcase', price: 45 },
-    { id: 'general',  name: 'General Guidance',   desc: 'Open channel for whatever needs to come through.',       icon: 'star',      price: 45 },
-    { id: 'timeline', name: 'Timeline Reading',   desc: 'Insights into timing and future events.',               icon: 'hourglass-half', price: 60 },
-    { id: 'pastlife', name: 'Past Life Reading',  desc: 'Explore karmic patterns and soul contracts.',           icon: 'infinity',  price: 75 },
-    { id: 'chakra',   name: 'Chakra Healing',     desc: 'Energy clearing and alignment for balance.',            icon: 'spa',       price: 55 },
+    { id: 'love',     name: 'Love Reading',      desc: 'Clarity on relationships, soulmates & emotional blocks.', icon: 'heart',    price: 0 },
+    { id: 'career',   name: 'Career Reading',     desc: 'Discover your professional purpose and next steps.',      icon: 'briefcase', price: 0 },
+    { id: 'general',  name: 'General Guidance',   desc: 'Open channel for whatever needs to come through.',       icon: 'star',      price: 0 },
+    { id: 'timeline', name: 'Timeline Reading',   desc: 'Insights into timing and future events.',               icon: 'hourglass-half', price: 0 },
+    { id: 'pastlife', name: 'Past Life Reading',  desc: 'Explore karmic patterns and soul contracts.',           icon: 'infinity',  price: 0 },
+    { id: 'chakra',   name: 'Chakra Healing',     desc: 'Energy clearing and alignment for balance.',            icon: 'spa',       price: 0 },
 ];
 
 const durations = [
@@ -52,6 +52,7 @@ const durations = [
     { id: '5card', label: '5-card pull', price: 15, desc: 'Deeper exploration with five cards' },
     { id: 'mini', label: 'Mini read', price: 75, desc: 'Short intuitive reading for quick clarity' },
     { id: 'standard', label: 'Standard read', price: 100, desc: 'Full standard session for balanced guidance' },
+    { id: 'timeframe', label: 'Timeframe Reading', price: 5, desc: 'Timing predictions and when events may manifest' }
 ];
 
 // ── Auth state ─────────────────────────────────────────
@@ -89,11 +90,15 @@ function goTo(step) {
 }
 
 // ── Helpers ────────────────────────────────────────────
+function totalAmount() {
+    const serviceTotal = bookingData.service?.price || 0;
+    const durationTotal = bookingData.duration?.price || 0;
+    return serviceTotal + durationTotal;
+}
+
 function summaryBar() {
     if (!bookingData.service) return '';
-    const serviceTotal = bookingData.service.price;
-    const durationExtra = bookingData.duration ? bookingData.duration.price : 0;
-    const total = serviceTotal + durationExtra;
+    const total = totalAmount();
     return `
     <div class="booking-summary">
         ${bookingData.service ? `<p><span>Service</span><strong>${escapeHtml(bookingData.service.name)}</strong></p>` : ''}
@@ -137,7 +142,7 @@ function renderStep1() {
                 <i class="fas fa-${s.icon}"></i>
                 <h3>${escapeHtml(s.name)}</h3>
                 <p style="font-size:0.85rem;color:var(--text-secondary);margin:0.25rem 0 0.5rem;">${escapeHtml(s.desc)}</p>
-                <span class="price">$${s.price}</span>
+                ${s.price > 0 ? `<span class="price">$${s.price}</span>` : ''}
             </div>`).join('')}
         </div>
         ${navButtons('Back', 'nextBtn', 'Next', !bookingData.service)}
@@ -147,7 +152,7 @@ function renderStep1() {
 function renderStep2() {
     return `
     <div class="booking-step">
-        <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Select Duration</h2>
+        <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Select Duration & Add‑ons</h2>
         ${summaryBar()}
         <div class="durations-list">
             ${durations.map(d => `
@@ -201,7 +206,7 @@ function renderStep4() {
 }
 
 function renderStep5() {
-    const total = (bookingData.service?.price || 0) + (bookingData.duration?.price || 0);
+    const total = totalAmount();
     return `
     <div class="booking-step">
         <h2 style="text-align:left;display:block;font-size:1.6rem;margin-bottom:1.5rem;">Confirm & Send</h2>
@@ -238,7 +243,14 @@ function render() {
     const container = document.getElementById('bookingContent');
     if (!container) return;
 
-    const html = [renderStep1, renderStep2, renderStep3, renderStep4, renderStep5][currentStep - 1]();
+    const stepMap = {
+        1: renderStep1,
+        2: renderStep2,
+        3: renderStep3,
+        4: renderStep4,
+        5: renderStep5
+    };
+    const html = stepMap[currentStep]();
     container.innerHTML = html;
     attachEvents();
 }
@@ -269,6 +281,7 @@ function attachEvents() {
                 bookingData.duration = dur;
                 saveBookingData();
                 document.getElementById('nextBtn').disabled = false;
+                render(); // refresh summary
             });
         });
     }
@@ -347,7 +360,7 @@ async function saveBooking(txRef, paymentStatus) {
             duration: bookingData.duration,
             dateTime: bookingData.dateTime,
             userInfo: bookingData.userInfo,
-            totalAmount: (bookingData.service?.price || 0) + (bookingData.duration?.price || 0),
+            totalAmount: totalAmount(),
             txRef,
             paymentStatus,
             status: 'pending',
