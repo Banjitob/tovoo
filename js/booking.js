@@ -10,6 +10,7 @@ const provider = new GoogleAuthProvider();
 let currentStep = 1;
 let currentUser = null;
 let bookingData = { service: null, duration: null, dateTime: null, userInfo: null };
+const CREATOR_FEE = 1;
 
 // Load saved booking data from localStorage
 function loadSavedBookingData() {
@@ -93,7 +94,7 @@ function goTo(step) {
 function totalAmount() {
     const serviceTotal = bookingData.service?.price || 0;
     const durationTotal = bookingData.duration?.price || 0;
-    return serviceTotal + durationTotal;
+    return bookingData.service ? serviceTotal + durationTotal + CREATOR_FEE : 0;
 }
 
 function summaryBar() {
@@ -104,6 +105,7 @@ function summaryBar() {
         ${bookingData.service ? `<p><span>Service</span><strong>${escapeHtml(bookingData.service.name)}</strong></p>` : ''}
         ${bookingData.duration ? `<p><span>Duration</span><strong>${escapeHtml(bookingData.duration.label)}</strong></p>` : ''}
         ${bookingData.dateTime ? `<p><span>Date & Time</span><strong>${formatDT(bookingData.dateTime)}</strong></p>` : ''}
+        <p><span>Creator fee</span><strong>$${CREATOR_FEE.toFixed(2)}</strong></p>
         <p class="booking-total"><span>Total</span><strong>$${total}</strong></p>
     </div>`;
 }
@@ -361,6 +363,7 @@ async function saveBooking(txRef, paymentStatus) {
             dateTime: bookingData.dateTime,
             userInfo: bookingData.userInfo,
             totalAmount: totalAmount(),
+            creatorFee: CREATOR_FEE,
             txRef,
             paymentStatus,
             status: 'pending',

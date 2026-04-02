@@ -7,6 +7,7 @@ const auth = getAuth();
 const provider = new GoogleAuthProvider();
 let currentUser = null;
 let cart = [];
+const CREATOR_FEE = 1;
 
 // ── Cart Persistence ────────────────────────────────────
 function saveCartToLocalStorage() {
@@ -73,11 +74,14 @@ function closeCart() {
 function updateCartUI() {
     const countEl = document.getElementById('cartCount');
     const itemsEl = document.getElementById('cartItems');
+    const feeEl = document.getElementById('cartFee');
     const totalEl = document.getElementById('cartTotal');
     const checkoutEl = document.getElementById('checkoutBtn');
 
     if (countEl) countEl.textContent = cart.length;
-    const total = cart.reduce((sum, i) => sum + i.price, 0);
+    const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+    const total = subtotal + CREATOR_FEE;
+    if (feeEl) feeEl.textContent = '$' + CREATOR_FEE.toFixed(2);
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
     if (checkoutEl) checkoutEl.disabled = cart.length === 0;
 
@@ -211,7 +215,8 @@ document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
 
     if (!cart.length) return;
 
-    const total = cart.reduce((sum, i) => sum + i.price, 0);
+    const subtotal = cart.reduce((sum, i) => sum + i.price, 0);
+    const amount = subtotal + CREATOR_FEE;
     const btn = document.getElementById('checkoutBtn');
     setLoading(btn, true);
 
@@ -227,7 +232,7 @@ document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
     window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: 'SP_SHOP_' + Date.now(),
-        amount: total,
+        amount: amount,
         currency: 'USD',
         payment_options: 'card, mobilemoneyghana, ussd',
         customer: {
@@ -241,7 +246,7 @@ document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
         },
         callback: async (response) => {
             if (response.status === 'successful') {
-                await saveOrder(response.transaction_id, response.status);
+                await saveOrder(response.transaction_id, response.status, amount);
             } else {
                 showToast('Payment not completed. Please try again.', 'error');
             }
@@ -251,7 +256,7 @@ document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
     });
 });
 
-async function saveOrder(txRef, paymentStatus) {
+async function saveOrder(txRef, paymentStatus, chargedAmount) {
     try {
         for (const item of cart) {
             await addDoc(collection(db, 'orders'), {
@@ -260,6 +265,8 @@ async function saveOrder(txRef, paymentStatus) {
                 productId: item.id,
                 productName: item.name,
                 totalAmount: item.price,
+                chargedAmount,
+                creatorFee: CREATOR_FEE,
                 txRef,
                 paymentStatus,
                 status: 'completed',
